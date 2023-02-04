@@ -8,5 +8,4 @@ export default {
 interface config {
     DISCORD_TOKEN: string
     APPLICATION_ID: string,
-    GUILD_ID?: string
 }
