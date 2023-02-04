@@ -30,6 +30,7 @@ for (const index in commandList) {
 
 console.log() // prints an empty line
 
+// taken from discord.js docs and transformed a bit
 export async function reloadGlobalSlashCommands() {
     try {
         console.log(color.bgYellowBright(`Started refreshing ${commandList.length} application (/) commands.`));
