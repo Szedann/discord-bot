@@ -6,7 +6,7 @@ export default {
         .setName("delete")
         .setDescription("bulk delete messages")
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-        .addIntegerOption(option => option.setName("amount").setMinValue(1).setMaxValue(50).setDescription("how many messages should be deleted").setRequired(true)),
+        .addIntegerOption(option => option.setName("amount").setMinValue(1).setMaxValue(100).setDescription("how many messages should be deleted").setRequired(true)),
     async execute(interaction) {
         const messages = await interaction.channel as BaseGuildTextChannel
         const amount = (interaction.options.get("amount")?.value || 5) as number

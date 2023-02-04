@@ -50,5 +50,3 @@ client.once("ready", client => {
         handler.handler(client)
     }
 });
-
-const sleep = (t: number) => new Promise(r => setTimeout(r, t))
