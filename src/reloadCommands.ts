@@ -3,7 +3,6 @@ import * as color from 'colorette'
 
 
 (async () => {
-
     await reloadGlobalSlashCommands()
     console.log(color.cyan("registered commands."))
 })()

@@ -61,9 +61,8 @@ const commandHandler: Handler = { // object exported as the handler, accessible 
 
             try {
                 await commandCollection.get(interaction.commandName)!.execute(interaction) // try execute the command
-            } catch (error) {
-                // in case of an error
-                await interaction.followUp({                                                                                                        // and send a followup to the interaction 
+            } catch (error) {                   // in case of an error
+                await interaction.followUp({    // send a followup to the interaction 
                     embeds: [
                         new EmbedBuilder({
                             color: 0xff2222,

@@ -16,19 +16,30 @@ export default {
         const channel = (await interaction.guild?.members.fetch(interaction.user.id))!.voice.channel
         const now = interaction.options.get("now", false)?.value as boolean
         if (!channel || channel.type != ChannelType.GuildVoice) return interaction.reply("You have to in a voice channel in order to use this command")
+
         await interaction.reply("Searching for song...")
+
         const added = await musicHandler.addToQueue([interaction.options.get("song", true).value] as [string], now)
         const emb = new EmbedBuilder({ color: Colors.Purple })
-        if (!added.length) return interaction.editReply({ content: "", embeds: [emb.setTitle("Couldn't find the song")] })
+        if (!added.length) return interaction.editReply({
+            content: "",
+            embeds: [emb.setTitle("Couldn't find the song")]
+        })
         musicHandler.playQueue(channel)
         if (added.length == 1) {
             const song = added[0]
             emb.setTitle(`Added \`${song.title}\` to queue`)
                 .setURL(song.url)
-                .addFields(
-                    { name: 'Author', value: song.author, inline: true },
+                .addFields({
+                    name: 'Author',
+                    value: song.author,
+                    inline: true
+                },
                 )
-            return interaction.editReply({ embeds: [emb], content: "" })
+            return interaction.editReply({
+                embeds: [emb],
+                content: ""
+            })
         }
 
 
@@ -46,7 +57,10 @@ export default {
         }
 
         emb.setDescription(description)
-        interaction.editReply({ embeds: [emb], content: "" })
+        interaction.editReply({
+            embeds: [emb],
+            content: ""
+        })
 
     }
 } as command
