@@ -3,6 +3,7 @@ import * as color from 'colorette'
 import commandHandler from './handlers/command.handler';
 import buttonHandler from './handlers/button.handler';
 import config from './config';
+import musicHandler from "./handlers/music.handler";
 
 
 // CREATE THE CLIENT AND LOG IN //
@@ -37,7 +38,8 @@ export interface Handler { // creates an interface accessible from other files
 
 const handlers: Handler[] = [
     commandHandler,
-    buttonHandler
+    buttonHandler,
+    musicHandler
 ]
 
 for (const handler of handlers.filter(handler => !handler.runAfterLogin)) {
@@ -47,6 +49,6 @@ client.once("ready", client => {
     for (const handler of handlers.filter(handler => handler.runAfterLogin)) {
         handler.handler(client)
     }
-})
+});
 
-// console.log(color.bgWhite(`press ${color.bold("G")} to reload global application commands.`))
+const sleep = (t: number) => new Promise(r => setTimeout(r, t))

@@ -5,20 +5,30 @@ import { command } from "../handlers/command.handler";
 
 export default {
     data: new SlashCommandBuilder()
-        .setName("queue")
-        .setDescription("get the queue"),
+        .setName("skip")
+        .setDescription("skip the current song"),
     async execute(interaction: CommandInteraction) {
         if (!interaction.guildId) return interaction.reply("This command must be used on a server")
         const musicHandler = getMusicHandler(interaction.guildId)
-        const queue = musicHandler.queue
-        const emb = new EmbedBuilder({
-            title: "Queue:",
-            description: queue.length
-                ? queue.map((song, index) => `${index + 1}.${song.title} by ${song.author}`).join('\n')
-                : "Queue is empty.",
-            fields: [
-                { name: "loop", value: musicHandler.loop ? "on" : "off" }]
+        const skipped = musicHandler.currentSong
+        const next = musicHandler.queue[0]
+        if (!skipped) return interaction.reply({
+            embeds: [
+                new EmbedBuilder({
+                    title: "No song is currently playing"
+                })
+            ],
+            ephemeral: true
         })
-        interaction.reply({ embeds: [emb] })
+        musicHandler.skip()
+        const embed = new EmbedBuilder({
+            title: `Skipped \`${skipped.title}\`.`
+        })
+        if (next) embed.setDescription(`Now playing: \`${next.title}\``)
+
+        interaction.reply({
+            embeds: [embed]
+        })
+
     }
 } as command

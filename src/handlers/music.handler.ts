@@ -1,11 +1,21 @@
-import { AudioPlayer, AudioPlayerStatus, createAudioPlayer, createAudioResource, entersState, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from "@discordjs/voice";
-import config from "../config";
+import { AudioPlayer, AudioPlayerStatus, createAudioPlayer, createAudioResource, entersState, joinVoiceChannel, NoSubscriberBehavior, StreamType, VoiceConnection } from "@discordjs/voice";
 import { VoiceChannel } from "discord.js";
-import youtubeSearch from "youtube-search"
-import ytdl from "ytdl-core"
-import ytpl from "ytpl"
+import { Handler } from "../index";
+import play from 'play-dl'
+import internal from "stream";
 
-
+export default {
+    name: "Music handler",
+    handler(client) {
+        client.on("voiceStateUpdate", (oldState, newState) => {
+            if (!oldState.channelId || newState.channel) return
+            const handler = musicHandlers.get(oldState.guild.id)
+            if (!handler) return
+            handler.removeListeners()
+            musicHandlers.delete(oldState.guild.id)
+        })
+    },
+} as Handler
 
 export interface song {
     title: string;
@@ -13,17 +23,18 @@ export interface song {
     url: string;
 }
 
-let youtubeSearchOptions: youtubeSearch.YouTubeSearchOptions = {
-    maxResults: 10,
-    key: config.YOUTUBE_DATA_API_KEY,
-};
-
 class MusicHandler {
     private connection: VoiceConnection | undefined;
 
     private audioPlayer: AudioPlayer | undefined = undefined;
     private _queue: song[] = [];
     public loop = false;
+
+    public removeListeners() {
+        this.connection?.removeAllListeners()
+        this.connection?.destroy()
+        this.audioPlayer?.removeAllListeners()
+    }
 
     public get queue() {
         return this._queue
@@ -40,8 +51,8 @@ class MusicHandler {
         if (this.audioPlayer?.state.status == AudioPlayerStatus.Playing) return
         while (this._queue.length) {
             const song = this._queue.shift()!
+            await this.playSong(song)
             if (this.loop) this._queue.push(song)
-            await this.play(song)
         }
         this.connection?.disconnect()
     }
@@ -70,69 +81,97 @@ class MusicHandler {
         this.audioPlayer?.stop()
     }
 
-    public async play(song: song) {
-        this.current = song
+    public async playSong(song: song) {
         try {
-            const stream = ytdl(song.url,
-                {
-                    filter: 'audioonly',
-                    quality: 'highestaudio',
-                })
-            const resource = createAudioResource(stream)
-            this.audioPlayer = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause }, debug: true })
-            this.connection?.subscribe(this.audioPlayer)
-            this.audioPlayer.play(resource)
-            await entersState(this.audioPlayer, AudioPlayerStatus.Playing, 5e3)
-            return new Promise<void>(resolve => {
-                this.audioPlayer?.on('stateChange', (_, newState) => {
-                    if (newState.status == AudioPlayerStatus.Idle) {
-                        resolve()
-                    }
-                })
-            })
+            const stream = await play.stream(song.url)
+            const readableStream = stream.stream
+            await this.playStream(readableStream, { song, type: stream.type })
         } catch (error) {
-
             console.error(error)
         }
-
-
     }
 
-    public async addToQueue(...songs: string[]) {
+    public async playStream(stream: string | internal.Readable, options: { type?: StreamType, song?: song }) {
+        this.current = options.song || { title: "unknown", author: "unknown", url: "https://0.0.0.0/" }
+        const resource = createAudioResource(stream, {
+            inputType: options.type
+        })
+        this.audioPlayer = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } })
+        this.connection?.subscribe(this.audioPlayer)
+        this.audioPlayer.play(resource)
+        await entersState(this.audioPlayer, AudioPlayerStatus.Playing, 5e3)
+        return new Promise<void>(resolve => {
+            this.audioPlayer?.on('stateChange', (_, newState) => {
+                if (newState.status == AudioPlayerStatus.Idle) {
+                    resolve()
+                }
+            })
+        })
+    }
+
+    public shuffleQueue() {
+        for (let i = this._queue.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const temp = this._queue[i];
+            this._queue[i] = this._queue[j];
+            this._queue[j] = temp;
+        }
+    }
+
+    public setQueueSongs(songs: song[]) {
+        this._queue.splice(0, this._queue.length)
+        this._queue.push(...songs)
+    }
+
+    public addSongsToQueue(songs: song[], inFront: boolean = false) {
+        if (inFront) this._queue.unshift(...songs)
+        else this._queue.push(...songs)
+    }
+
+    public async addToQueue(songs: string[], inFront: boolean = false) {
         const toAdd: song[] = []
         for (const url of songs) {
-            if (ytpl.validateID(url)) {
-                const playlist = await ytpl(await ytpl.getPlaylistID(url))
-                for (const item of playlist.items) {
+            const type = await play.validate(url)
+            switch (type) {
+                case "yt_video":
+                    {
+                        const data = await play.video_basic_info(url)
+                        toAdd.push({
+                            author: data.video_details.channel?.name || "unknown",
+                            title: data.video_details.title || "unknown",
+                            url: data.video_details.url
+                        })
+                        break
+                    }
+                case "yt_playlist":
+                    {
+                        const playlist = await play.playlist_info(url)
+                        for (const video of await playlist.all_videos()) {
+                            toAdd.push({
+                                author: video.channel?.name || "unknown",
+                                title: video.title || "unknown",
+                                url: video.url
+                            })
+                        }
+                        break
+                    }
+                case "search": {
+                    const [data] = await play.search(url, { limit: 1 })
                     toAdd.push({
-                        title: item.title,
-                        author: item.author.name,
-                        url: item.shortUrl
+                        author: data.channel?.name || "unknown",
+                        title: data.title || "unknown",
+                        url: data.url
                     })
                 }
-            } else if (ytdl.validateURL(url)) {
-                const details = await ytdl.getBasicInfo(url)
-                if (details.videoDetails.age_restricted) continue
-                toAdd.push({
-                    title: details.videoDetails.title,
-                    author: details.videoDetails.author.name,
-                    url: details.videoDetails.video_url
-                })
-            } else {
-                const [searchResult] = (await youtubeSearch(url, youtubeSearchOptions)).results
-                toAdd.push({
-                    title: searchResult.title,
-                    author: searchResult.channelTitle,
-                    url: searchResult.link
-                })
             }
         }
-        this._queue.push(...toAdd)
+        if (inFront) this._queue.unshift(...toAdd)
+        else this._queue.push(...toAdd)
         return toAdd
     }
 }
 
-const handlers = new Map<string, MusicHandler>()
+export const musicHandlers = new Map<string, MusicHandler>()
 
-export const getMusicHandler = (guildId: string) => handlers.get(guildId) || handlers.set(guildId, new MusicHandler).get(guildId)!
+export const getMusicHandler = (guildId: string) => musicHandlers.get(guildId) || musicHandlers.set(guildId, new MusicHandler).get(guildId)!
 

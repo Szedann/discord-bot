@@ -1,4 +1,4 @@
-import { buttonGroupList } from "../buttonGroups/buttonGroupList";
+import { buttonGroupList } from "../buttonGroups/_buttonGroupList";
 import { ButtonInteraction } from "discord.js";
 import { Handler } from "index";
 

@@ -30,25 +30,6 @@ for (const index in commandList) {
 
 console.log() // prints an empty line
 
-// taken from the discord.js docs
-export async function reloadServerSlashCommands() {
-    try {
-        console.log(color.bgYellowBright(`Started refreshing ${commandList.length} application (/) commands.`));
-        console.time(color.yellowBright("Reloading server commands"))
-
-        // The put method is used to fully refresh all commands in the guild with the current set
-        await rest.put(
-            Routes.applicationGuildCommands(config.APPLICATION_ID, config.GUILD_ID),
-            { body: commandList.map(commandList => commandList.data.toJSON()) },
-        );
-
-        console.log(`Successfully reloaded server application (/) commands.`);
-        console.timeEnd(color.yellowBright("Reloading server commands"))
-    } catch (error) {
-        // And of course, make sure you catch and log any errors!
-        console.error(error);
-    }
-}
 export async function reloadGlobalSlashCommands() {
     try {
         console.log(color.bgYellowBright(`Started refreshing ${commandList.length} application (/) commands.`));
@@ -67,8 +48,6 @@ export async function reloadGlobalSlashCommands() {
         console.error(error);
     }
 }
-reloadServerSlashCommands()
-reloadGlobalSlashCommands()
 
 
 const commandHandler: Handler = { // object exported as the handler, accessible to other files
@@ -83,7 +62,6 @@ const commandHandler: Handler = { // object exported as the handler, accessible 
                 await commandCollection.get(interaction.commandName)!.execute(interaction) // try execute the command
             } catch (error) {
                 // in case of an error
-                console.error(color.redBright(`Error while executing ${color.bgRedBright(" " + interaction.commandName + " ")} command:\n`), error) // log the error
                 await interaction.followUp({                                                                                                        // and send a followup to the interaction 
                     embeds: [
                         new EmbedBuilder({
@@ -93,8 +71,6 @@ const commandHandler: Handler = { // object exported as the handler, accessible 
                     ]
                 })
                 return;
-            } finally {
-                console.log(`Executed ${color.greenBright(interaction.commandName)} command requested by ${color.greenBright(interaction.user.tag)}`)
             }
         })
     },
