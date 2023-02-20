@@ -12,9 +12,9 @@ export default {
         const amount = (interaction.options.get("amount")?.value || 5) as number
         try {
             messages.bulkDelete(amount)
-            interaction.reply(`Deleted last ${amount} messages`)
+            interaction.reply({ content: `Deleted last ${amount} messages`, ephemeral: true })
         } catch {
-            interaction.reply("Couldn't delete messages (probably older than 2 weeks)")
+            interaction.reply({ content: "Couldn't delete messages (probably older than 2 weeks)", ephemeral: true })
         }
     }
 } as command

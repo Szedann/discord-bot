@@ -1,4 +1,4 @@
-import { ChannelType, Colors, CommandInteraction, EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { CommandInteraction, EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import { command } from "../handlers/command.handler";
 import { getMusicHandler } from "../handlers/music.handler";
 

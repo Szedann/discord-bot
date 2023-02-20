@@ -23,7 +23,7 @@ export interface song {
     url: string;
 }
 
-class MusicHandler {
+export class MusicHandler {
     private connection: VoiceConnection | undefined;
 
     private audioPlayer: AudioPlayer | undefined = undefined;
@@ -44,6 +44,10 @@ class MusicHandler {
 
     get currentSong() {
         return this.current
+    }
+
+    get isPlaying() {
+        return this.audioPlayer?.state.status == AudioPlayerStatus.Playing
     }
 
     public async playQueue(channel: VoiceChannel) {
@@ -73,15 +77,19 @@ class MusicHandler {
         this.audioPlayer?.pause()
     }
 
-    public resume() {
+    public unpause() {
         this.audioPlayer?.unpause()
     }
 
-    public skip() {
+    public async skip() {
         this.audioPlayer?.stop()
+        return new Promise<void>(resolve => {
+            this.audioPlayer?.on(AudioPlayerStatus.Idle, () => resolve())
+        })
     }
 
     public async playSong(song: song) {
+        this.current = song
         try {
             const stream = await play.stream(song.url)
             const readableStream = stream.stream
@@ -101,11 +109,7 @@ class MusicHandler {
         this.audioPlayer.play(resource)
         await entersState(this.audioPlayer, AudioPlayerStatus.Playing, 5e3)
         return new Promise<void>(resolve => {
-            this.audioPlayer?.on('stateChange', (_, newState) => {
-                if (newState.status == AudioPlayerStatus.Idle) {
-                    resolve()
-                }
-            })
+            this.audioPlayer?.on(AudioPlayerStatus.Idle, () => resolve())
         })
     }
 

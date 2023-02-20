@@ -1,4 +1,5 @@
 import { command as Command } from "../handlers/command.handler";
+import controlsCommand from "./controls.command";
 import deleteCommand from "./delete.command";
 import getQueueCommand from "./getQueue.command";
 import leaveCommand from "./leave.command";
@@ -14,7 +15,8 @@ const commandList: Command[] = [
     deleteCommand,
     skipCommand,
     loopCommand,
-    shuffleCommand
+    shuffleCommand,
+    controlsCommand
 ]
 
 export default commandList
